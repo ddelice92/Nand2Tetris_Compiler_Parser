@@ -26,9 +26,9 @@ public class HackCompiler
 					strfile = file.toString();
 					className = d.substring(d.lastIndexOf("\\") + 1, d.length() - 5);
 					if(codeFinal.isEmpty())
-						codeFinal = coder(parser(in));
+						codeFinal = parser(tokenizer(in));
 					else
-						codeFinal = codeFinal.concat(coder(parser(in)));
+						codeFinal = codeFinal.concat(parser(tokenizer(in)));
 				}
 			}
 		}
@@ -41,10 +41,12 @@ public class HackCompiler
 				className = strfile.substring(strfile.lastIndexOf("\\") + 1, strfile.length() - 3);
 				
 				if(codeFinal.isEmpty())
-					codeFinal = coder(parser(in));
+					codeFinal = parser(tokenizer(in));
 				else
-					codeFinal = codeFinal.concat(coder(parser(in)));
+					codeFinal = codeFinal.concat(parser(tokenizer(in)));
 			}
 		}
 	}
+
+
 }
