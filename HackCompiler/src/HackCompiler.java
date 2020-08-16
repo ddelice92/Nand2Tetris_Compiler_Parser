@@ -28,15 +28,24 @@ public class HackCompiler
 					in = new BufferedReader(new FileReader(new File(d)));
 					strfile = file.toString();
 					className = d.substring(d.lastIndexOf("\\") + 1, d.length() - 5);
+<<<<<<< HEAD
 					/*if(codeFinal.isEmpty())
 						//codeFinal = parser(tokenizer(in));
+=======
+					if(codeFinal.isEmpty())
+						codeFinal = parser(tokenizer(in));
+>>>>>>> refs/remotes/temp/Temp
 					else
+<<<<<<< HEAD
 						codeFinal = codeFinal.concat(parser(tokenizer(in)));*/
 					
 					//this is to test tokening
 					Token[] tokArray = tokenizer(in);
 					for(Token t : tokArray)
 						codeFinal = codeFinal.concat(t.toString());
+=======
+						codeFinal = codeFinal.concat(parser(tokenizer(in)));
+>>>>>>> refs/remotes/temp/Temp
 				}
 			}
 		}
@@ -48,10 +57,18 @@ public class HackCompiler
 				strfile = file.toString();
 				className = strfile.substring(strfile.lastIndexOf("\\") + 1, strfile.length() - 3);
 				
+<<<<<<< HEAD
 				/*if(codeFinal.isEmpty())
+=======
+				if(codeFinal.isEmpty())
+>>>>>>> refs/remotes/temp/Temp
 					codeFinal = parser(tokenizer(in));
 				else
+<<<<<<< HEAD
 					codeFinal = codeFinal.concat(parser(tokenizer(in)));*/
+=======
+					codeFinal = codeFinal.concat(parser(tokenizer(in)));
+>>>>>>> refs/remotes/temp/Temp
 			}
 			
 			//this is to test tokening
@@ -60,10 +77,15 @@ public class HackCompiler
 				codeFinal = codeFinal.concat(t.toString());
 		}
 	}
+<<<<<<< HEAD
 	
 	public static Token[] tokenizer(BufferedReader read)
 	{
 		ArrayList<char> chArr = new ArrayList<char>();
 		
 	}
+=======
+
+
+>>>>>>> refs/remotes/temp/Temp
 }
