@@ -1,3 +1,5 @@
+//*******************************
+//THIS LINE IS A TEST FOR GITHUB
 
 public class Token
 {
@@ -15,3 +17,4 @@ public class Token
 		return string;
 	}
 }
+
