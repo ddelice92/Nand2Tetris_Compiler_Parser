@@ -44,11 +44,11 @@ public class HackCompiler
 		}
 		else
 		{
-			if(strfile.substring(strfile.length() - 3, strfile.length()).equals(".vm"))
+			if(strfile.substring(strfile.length() - 5, strfile.length()).equals(".jack"))
 			{
 				in = new BufferedReader(new FileReader(file));
 				strfile = file.toString();
-				className = strfile.substring(strfile.lastIndexOf("\\") + 1, strfile.length() - 3);
+				className = strfile.substring(strfile.lastIndexOf("\\") + 1, strfile.length() - 5);
 				
 				/*if(codeFinal.isEmpty())
 					codeFinal = parser(tokenizer(in));
@@ -60,11 +60,6 @@ public class HackCompiler
 				for(Token t : tokArray)
 					codeFinal = codeFinal.concat(t.toString());
 			}
-			
-			//this is to test tokening
-			Token[] tokArray = tokenizer(in);
-			for(Token t : tokArray)
-				codeFinal = codeFinal.concat(t.toString());
 		}
 	}
 	
