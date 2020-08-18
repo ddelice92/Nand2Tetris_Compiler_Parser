@@ -60,6 +60,11 @@ public class HackCompiler
 				for(Token t : tokArray)
 					codeFinal = codeFinal.concat(t.toString());
 			}
+			
+			//this is to test tokening
+			Token[] tokArray = tokenizer(in);
+			for(Token t : tokArray)
+				codeFinal = codeFinal.concat(t.toString());
 		}
 	}
 	
