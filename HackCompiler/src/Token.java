@@ -17,5 +17,15 @@ public class Token
 		String string = "<" + this.type + ">" + this.name + "</" + this.type + ">\n";
 		return string;
 	}
+	
+	public String getType()
+	{
+		return type;
+	}
+	
+	public String getName()
+	{
+		return name;
+	}
 }
 

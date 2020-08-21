@@ -15,9 +15,8 @@ public class HackCompiler
 		String strfile;
 		File file = new File(args[0]);
 		
-		String tokenTest = "START TOKEN TEST\n";
+		String tokenTest = "START TOKEN TEST";
 		
-		System.out.println("pre buffer");
 		BufferedReader in;
 		strfile = file.toString();
 		if(file.isDirectory())
@@ -45,14 +44,10 @@ public class HackCompiler
 		}
 		else
 		{
-			System.out.println("not directory");
 			if(strfile.substring(strfile.length() - 5, strfile.length()).equals(".jack"))
 			{
-				System.out.println("jack file found");
 				in = new BufferedReader(new FileReader(file));
-				System.out.println("buffered reader initialized");
 				strfile = file.toString();
-				System.out.println(strfile);
 				className = strfile.substring(strfile.lastIndexOf("\\") + 1, strfile.length() - 5);
 				
 				/*if(codeFinal.isEmpty())
@@ -62,9 +57,10 @@ public class HackCompiler
 				
 				//this is to test tokening
 				Token[] tokArray = tokenizer(in);
-				System.out.println("token array made");
 				for(Token t : tokArray)
+				{
 					codeFinal = codeFinal.concat(t.toString());
+				}
 			}
 		}
 		
@@ -74,7 +70,6 @@ public class HackCompiler
 	
 	public static Token[] tokenizer(BufferedReader read) throws IOException
 	{
-		System.out.println("tokenizer started");
 		ArrayList<Token> tokArr = new ArrayList<Token>();
 		Token tokArrFin[];
 		char[] chArr;
@@ -83,71 +78,175 @@ public class HackCompiler
 		boolean strLit = false;
 		Token tokTemp;
 		
-		System.out.println(lineTemp);
 		while(lineTemp != null)
 		{
-			chArr = lineTemp.toCharArray();
-			for(char c : chArr)
+			if(lineTemp.length() > 2)
 			{
-				/*if(Character.toString(c).equals("\""))
+				if(!lineTemp.substring(0,2).equals("//"))
 				{
-					if(strLit == false)
-						strLit = true;
-					else
-						strLit = false;
-				}*/
-				
-				//if(strLit == true && !Character.toString(c).equals("\""))
-				if(Character.isLetterOrDigit(c) || Character.toString(c).equals("_") ||
-						Character.toString(c).equals("\""))
-				{
-					wordTemp = wordTemp.concat(Character.toString(c));
-				}
-				/*else if(strLit == false && !Character.toString(c).equals("\"") &&
-						!Character.toString(c).isBlank())
-				{
-					wordTemp = wordTemp.concat(Character.toString(c));
-				}*/
-				
-				//if c is blank and strlit is false or if c is " and strlit is false, add to string array
-				if(isSymbol(Character.toString(c)))
-				{
-					//put word into token array after test
-					if(isKeyword(wordTemp))
-						tokTemp = new Token(wordTemp, "keyword");
-					else if(isIntConst(wordTemp))
-						tokTemp = new Token(wordTemp, "integerConstant");
-					else if(isStringConst(wordTemp))
-						tokTemp = new Token(wordTemp, "stringConstant");
-					else
-						tokTemp = new Token(wordTemp, "identifier");
+					if(lineTemp.contains("//"))
+						lineTemp = lineTemp.substring(0 , lineTemp.indexOf("/"));
+					lineTemp = lineTemp.trim();
 					
-					tokArr.add(tokTemp);
-					tokTemp = new Token(Character.toString(c), "symbol");
-					tokArr.add(tokTemp);
-					wordTemp = "";
-				}
-				else if(Character.toString(c).isBlank() && wordTemp.length() > 0)
-				{
-					if(isKeyword(wordTemp))
-						tokTemp = new Token(wordTemp, "keyword");
-					else if(isIntConst(wordTemp))
+					chArr = lineTemp.toCharArray();
+					for(char c : chArr)
 					{
-						tokTemp = new Token(wordTemp, "integerConstant");
-						System.out.println("THIS IS AN INT : " + wordTemp);
+						/*if(Character.toString(c).equals("\""))
+						{
+							if(strLit == false)
+								strLit = true;
+							else
+								strLit = false;
+						}*/
+						
+						if(wordTemp.length() > 0 && Character.toString(wordTemp.charAt(0)).equals("\"")
+								&& !Character.toString(wordTemp.charAt(wordTemp.length() - 1)).equals("\""))
+							wordTemp = wordTemp.concat(Character.toString(c));
+						else if(Character.isLetterOrDigit(c) || Character.toString(c).equals("_") ||
+								Character.toString(c).equals("\"") || Character.toString(c).equals("/")
+								|| Character.toString(c).equals("*"))
+						{
+							wordTemp = wordTemp.concat(Character.toString(c));
+						}
+						/*else if(strLit == false && !Character.toString(c).equals("\"") &&
+								!Character.toString(c).isBlank())
+						{
+							wordTemp = wordTemp.concat(Character.toString(c));
+						}*/
+						
+						//if c is blank and strlit is false or if c is " and strlit is false, add to string array
+						if(wordTemp.isBlank() || !Character.toString(wordTemp.charAt(0)).equals("\""))
+						{
+							if(isSymbol(Character.toString(c)) && !wordTemp.equals("/") || !wordTemp.equals("/*")
+									|| !wordTemp.equals("/**") && wordTemp.length() > 3 &&
+									wordTemp.substring(wordTemp.length() - 1).equals("*") ||
+									wordTemp.substring(wordTemp.length() - 2).equals("*/"))
+							{
+								//put word into token array after test
+								if(wordTemp.length() > 0)
+								{
+									if(isKeyword(wordTemp))
+										tokTemp = new Token(wordTemp, "keyword");
+									else if(isIntConst(wordTemp))
+										tokTemp = new Token(wordTemp, "integerConstant");
+									else
+										tokTemp = new Token(wordTemp, "identifier");
+									
+									tokArr.add(tokTemp);
+								}
+								
+								tokTemp = new Token(Character.toString(c), "symbol");
+								tokArr.add(tokTemp);
+								wordTemp = "";
+							}
+							else if(wordTemp.length() > 4 && wordTemp.substring(0, 3).equals("/**")
+									&& wordTemp.substring(wordTemp.length() - 2).equals("*/"))
+							{
+								wordTemp = "";
+							}
+							else if(Character.toString(c).isBlank() && wordTemp.length() > 0)
+							{
+								if(isKeyword(wordTemp))
+									tokTemp = new Token(wordTemp, "keyword");
+								else if(isIntConst(wordTemp))
+									tokTemp = new Token(wordTemp, "integerConstant");
+								else if(isStringConst(wordTemp))
+									tokTemp = new Token(wordTemp, "stringConstant");
+								else if(isSymbol(wordTemp))
+									tokTemp = new Token(wordTemp, "symbol");
+								else
+									tokTemp = new Token(wordTemp, "identifier");
+								
+								
+								tokArr.add(tokTemp);
+								wordTemp = "";
+							}
+						}
+						else if(Character.toString(wordTemp.charAt(wordTemp.length() - 1)).equals("\"") &&
+								(Character.toString(c).isBlank() || isSymbol(Character.toString(c))))
+						{
+							tokTemp = new Token(wordTemp, "StringConstant");
+							tokArr.add(tokTemp);
+							wordTemp = "";
+							
+							if(isSymbol(Character.toString(c)))
+							{
+								tokTemp = new Token(Character.toString(c), "symbol");
+								tokArr.add(tokTemp);
+							}
+						}
 					}
-					else if(isStringConst(wordTemp))
-						tokTemp = new Token(wordTemp, "stringConstant");
-					else if(isSymbol(wordTemp))
-						tokTemp = new Token(wordTemp, "symbol");
-					else
-						tokTemp = new Token(wordTemp, "identifier");
-					
-					
-					tokArr.add(tokTemp);
-					wordTemp = "";
 				}
 			}
+			else
+			{
+				chArr = lineTemp.toCharArray();
+				for(char c : chArr)
+				{
+					/*if(Character.toString(c).equals("\""))
+					{
+						if(strLit == false)
+							strLit = true;
+						else
+							strLit = false;
+					}*/
+					
+					
+					if(Character.isLetterOrDigit(c) || Character.toString(c).equals("_") ||
+							Character.toString(c).equals("\""))
+					{
+						wordTemp = wordTemp.concat(Character.toString(c));
+					}
+					/*else if(strLit == false && !Character.toString(c).equals("\"") &&
+							!Character.toString(c).isBlank())
+					{
+						wordTemp = wordTemp.concat(Character.toString(c));
+					}*/
+					
+					//if c is blank and strlit is false or if c is " and strlit is false, add to string array
+					if(isSymbol(Character.toString(c)))
+					{
+						//put word into token array after test
+						if(wordTemp.length() > 0)
+						{
+							if(isKeyword(wordTemp))
+								tokTemp = new Token(wordTemp, "keyword");
+							else if(isIntConst(wordTemp))
+								tokTemp = new Token(wordTemp, "integerConstant");
+							else if(isStringConst(wordTemp))
+								tokTemp = new Token(wordTemp, "stringConstant");
+							else
+								tokTemp = new Token(wordTemp, "identifier");
+							
+							tokArr.add(tokTemp);
+						}
+						
+						tokTemp = new Token(Character.toString(c), "symbol");
+						tokArr.add(tokTemp);
+						wordTemp = "";
+					}
+					else if(Character.toString(c).isBlank() && wordTemp.length() > 0)
+					{
+						if(isKeyword(wordTemp))
+							tokTemp = new Token(wordTemp, "keyword");
+						else if(isIntConst(wordTemp))
+						{
+							tokTemp = new Token(wordTemp, "integerConstant");
+						}
+						else if(isStringConst(wordTemp))
+							tokTemp = new Token(wordTemp, "stringConstant");
+						else if(isSymbol(wordTemp))
+							tokTemp = new Token(wordTemp, "symbol");
+						else
+							tokTemp = new Token(wordTemp, "identifier");
+						
+						
+						tokArr.add(tokTemp);
+						wordTemp = "";
+					}
+				}
+			}
+			
 			//run this check one more time because the final character in chArr will
 			//not be a blank or a close double quote
 			/*if(isKeyword(wordTemp))
@@ -161,7 +260,6 @@ public class HackCompiler
 			
 			tokArr.add(tokTemp);*/
 			lineTemp = read.readLine();
-			System.out.println(lineTemp);
 		}
 		
 		tokArr.trimToSize();
@@ -210,10 +308,18 @@ public class HackCompiler
 		boolean test = true;
 		char chArr[] = string.toCharArray();
 		
-		for(char c : chArr)
+		/*for(char c : chArr)
 		{
 			if(!Character.isDigit(c))
 				test = false;
+		}*/
+		try
+		{
+			Integer.parseInt(string);
+		}
+		catch(Exception e)
+		{
+			test = false;
 		}
 		
 		return test;
@@ -222,10 +328,12 @@ public class HackCompiler
 	public static boolean isStringConst(String string)
 	{
 		boolean test = false;
-		
-		if(string.substring(0, 1).equals("\"") && string.substring(string.length() - 1, string.length()).equals("\""))
+		if(string.length() > 1)
 		{
-			test = true;
+			if(string.substring(0, 1).equals("\"") && string.substring(string.length() - 1, string.length()).equals("\""))
+			{
+				test = true;
+			}
 		}
 		
 		return test;
