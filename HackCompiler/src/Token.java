@@ -10,7 +10,18 @@ public class Token
 	
 	public String toString()
 	{
-		String string = "<" + this.type + ">" + this.name + "</" + this.type + ">\n";
+		String string = "\t<" + this.type + ">" + this.name + "</" + this.type + ">\n";
 		return string;
 	}
+	
+	public String getType()
+	{
+		return type;
+	}
+	
+	public String getName()
+	{
+		return name;
+	}
 }
+
