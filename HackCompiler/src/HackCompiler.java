@@ -10,10 +10,13 @@ import java.util.ArrayList;
 public class HackCompiler
 {
 	static String className;
+	static int index = 0;
+	static ArrayList<String> subArr = new ArrayList<String>(), varsArr = new ArrayList<String>(),
+			classNameArr = new ArrayList<String>();
 	
 	public static void main(String[] args) throws IOException
 	{
-		String codeFinal = "<tokens>\n";
+		String codeFinal = "";
 		String strfile;
 		File file = new File(args[0]);
 		
@@ -28,6 +31,11 @@ public class HackCompiler
 			String[] dirContent = file.list();
 			for(String d : dirContent)
 			{
+				if(d.substring(d.length() - 5, d.length()).equals(".jack"))
+					classNameArr.add(d.substring(d.lastIndexOf("\\") + 1, d.length() - 5));
+			}
+			for(String d : dirContent)
+			{
 				d = file.toString() + "\\" + d;
 				if(d.substring(d.length() - 5, d.length()).equals(".jack"))
 				{
@@ -36,17 +44,12 @@ public class HackCompiler
 					className = d.substring(d.lastIndexOf("\\") + 1, d.length() - 5);
 					
 					//this is to test tokening
-					Token[] tokArray = tokenizer(in);
+					/*Token[] tokArray = tokenizer(in);
 					for(Token t : tokArray)
-						codeFinal = codeFinal.concat(t.toString());
+						codeFinal = codeFinal.concat(t.toString());*/
+					codeFinal = codeFinal.concat(parser(tokenizer(in)));
 					
-					System.out.println("THIS IS D : " + d);
-					strfile = strfile.substring(0, strfile.lastIndexOf("\\"));
-					strfile = strfile.substring(0, strfile.lastIndexOf("\\"));
-					System.out.println("THIS WILL BE FINAL FILE NAME : " + strfile.concat("\\My" + className
-							+ "T.xml"));
-					
-					fileOut = new File(strfile.concat("\\My" + className + "T.xml"));
+					fileOut = new File(strfile.concat("\\My" + className + ".xml"));
 					//check if file already exists
 					if(fileOut.exists())
 					{
@@ -72,18 +75,12 @@ public class HackCompiler
 				
 				
 				//this is to test tokening
-				Token[] tokArray = tokenizer(in);
+				/*Token[] tokArray = tokenizer(in);
 				for(Token t : tokArray)
-				{
-					codeFinal = codeFinal.concat(t.toString());
-				}
-				codeFinal = codeFinal.concat("</tokens>");
+					codeFinal = codeFinal.concat(t.toString());*/
+				codeFinal = codeFinal.concat(parser(tokenizer(in)));
 				
-				strfile = strfile.substring(0, strfile.lastIndexOf("\\"));
-				System.out.println("THIS WILL BE FINAL FILE NAME : " + strfile.concat("\\My" + className
-						+ "T.xml"));
-				
-				fileOut = new File(strfile.concat("\\My" + className + "T.xml"));
+				fileOut = new File(strfile.concat("\\My" + className + ".xml"));
 				//check if file already exists
 				if(fileOut.exists())
 				{
@@ -98,9 +95,6 @@ public class HackCompiler
 				out.close();
 			}
 		}
-		
-		System.out.println(tokenTest);
-		System.out.println(codeFinal);
 	}
 	
 	public static Token[] tokenizer(BufferedReader read) throws IOException
@@ -120,14 +114,12 @@ public class HackCompiler
 				if(!lineTemp.substring(0,2).equals("//"))
 				{
 					if(lineTemp.contains("//"))
-						lineTemp = lineTemp.substring(0 , lineTemp.indexOf("/"));
+						lineTemp = lineTemp.substring(0 , lineTemp.indexOf("//"));
 					lineTemp = lineTemp.trim();
 					
 					chArr = lineTemp.toCharArray();
 					for(int i = 0; i < chArr.length; i++)
 					{
-						System.out.println("INCOMMENT : " + inComment + " : WORDTEMP : " + wordTemp);
-						
 						if(Character.toString(chArr[i]).equals("/") && i < (chArr.length - 1) &&
 								Character.toString(chArr[i + 1]).equals("*"))
 						{
@@ -398,6 +390,39 @@ public class HackCompiler
 		return tokArrFin;
 	}
 	
+	public static String parser(Token[] token)
+	{
+		int count;
+		String codeFinal = "";
+		
+		//create arraylist of subroutine names and variable names
+		for(int i = 0; i < token.length; i++)
+		{
+			String tempTok = token[i].getName();
+			if((tempTok.equals("constructor") || tempTok.equals("function") || tempTok.equals("method") ||
+					tempTok.equals("void") || tempTok.equals("int") || tempTok.equals("char") ||
+					tempTok.equals("boolean") || tempTok.equals(className)) && token[i + 2].getName().equals("("))
+				subArr.add(token[i + 1].getName());
+			else if(token[i].getName().equals("var"))
+			{
+				varsArr.add(token[i + 2].getName());
+				if(!token[i + 3].getName().equals(";"))
+				{
+					count = 4;
+					while(!token[i + count - 1].getName().equals(";"))
+					{
+						varsArr.add(token[i + count].getName());
+						count = count + 2;
+					}
+				}
+			}
+		}
+		
+		codeFinal = codeFinal.concat(classMethod(token));
+		//CURRENTLY NOT LEAVING CLASS METHOD
+		return codeFinal;
+	}
+	
 	public static boolean isKeyword(String string)
 	{
 		boolean test = false;
@@ -432,7 +457,6 @@ public class HackCompiler
 	public static boolean isIntConst(String string)
 	{
 		boolean test = true;
-		char chArr[] = string.toCharArray();
 		
 		try
 		{
@@ -458,5 +482,501 @@ public class HackCompiler
 		}
 		
 		return test;
+	}
+	
+	public static String classMethod(Token[] token)
+	{
+		String retString = "<class>\n";
+		
+		//parse class and class name
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		if(token[index].getName().equals("{"))
+		{
+			retString = retString.concat(token[index].toString());
+			index++;
+			while(!token[index].getName().equals("}"))
+			{
+				if(token[index].getName().equals("static") || token[index].getName().equals("field"))
+					retString = retString.concat(classVarDec(token));
+				else if(token[index].getName().equals("constructor") || token[index].getName().equals("function")
+						|| token[index].getName().equals("method")/* || token[index].getName().equals("void") ||
+						token[index].getName().equals("int") || token[index].getName().equals("char") ||
+						token[index].getName().equals("boolean") || token[index].getName().equals(className)*/)
+				{
+					System.out.println("IN CLASSMETHOD\n" + retString);
+					retString = retString.concat(subroutineDec(token));
+				}
+			}
+			
+			//print final close bracket
+			retString = retString.concat(token[index].toString());
+		}
+		
+		retString = retString.concat("</class>\n");
+		return retString;
+	}
+	
+	public static String classVarDec(Token[] token)
+	{
+		String retString = "<classVarDec>\n";
+		
+		//add static or field keyword, type, and first varName
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		//print list of varNames
+		if(token[index].getName().equals(","))
+		{
+			while(!token[index].getName().equals(";"))
+			{
+				retString = retString.concat(token[index].toString());
+				index++;
+			}
+		}
+		
+		//add semicolon
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat("</classVarDec>\n");
+		return retString;
+	}
+	
+	public static String subroutineDec(Token[] token)
+	{
+		String retString = "<subroutineDec>\n";
+		
+		
+		//add keyword, type, subroutineName, and (
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		//check for parameters then add )
+		retString = retString.concat(parameterList(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		//add subroutine body
+		retString = retString.concat(subroutineBody(token));
+		
+		retString = retString.concat("</subroutineDec>\n");
+		return retString;
+	}
+	
+	public static String parameterList(Token[] token)
+	{
+		String retString = "<parameterList>\n";
+		
+		while(!token[index].getName().equals(")"))
+		{
+			//add type and varName
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(token[index].toString());
+			index++;
+			
+			//add comma for multiple vars
+			if(token[index].getName().equals(","))
+			{
+				retString = retString.concat(token[index].toString());
+				index++;
+			}
+		}
+		
+		retString = retString.concat("</parameterList>\n");
+		return retString;
+	}
+	
+	public static String subroutineBody(Token[] token)
+	{
+		String retString = "<subroutineBody>\n";
+		
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		while(!token[index].getName().equals("}"))
+		{
+			if(token[index].getName().equals("var"))
+			{
+				retString = retString.concat(varDec(token));
+			}
+			else
+			{
+				System.out.println("IN SUBROUTINE\n" + retString);
+				retString = retString.concat(statements(token));
+			}
+		}
+		
+		//add }
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat("</subroutineBody>\n");
+		return retString;
+	}
+	
+	public static String varDec(Token[] token)
+	{
+		String retString = "<varDec>\n";
+		
+		//add var, type, and varName
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		if(token[index].getName().equals(","))
+		{
+			while(!token[index].getName().equals(";"))
+			{
+				//add comma and next varName
+				retString = retString.concat(token[index].toString());
+				index++;
+				retString = retString.concat(token[index].toString());
+				index++;
+			}
+		}
+		
+		//add ;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat("</varDec>\n");
+		
+		return retString;
+	}
+	
+	public static String statements(Token[] token)
+	{
+		String retString = "<statements>\n";
+		
+		System.out.println(retString);
+		while(!token[index].getName().equals("}"))
+		{
+			//System.out.println("THIS IS THE CURRENT TOKEN :: " + token[index].getName());
+			switch(token[index].getName())
+			{
+				case "let":
+					retString = retString.concat(letMethod(token));
+					break;
+				case "if":
+					retString = retString.concat(ifMethod(token));
+					break;
+				case "while":
+					retString = retString.concat(whileMethod(token));
+					break;
+				case "do":
+					retString = retString.concat(doMethod(token));
+					break;
+				case "return":
+					retString = retString.concat(returnMethod(token));
+					break;
+			}
+		}
+		
+		retString = retString.concat("</statements>\n");
+		return retString;
+	}
+	
+	public static String letMethod(Token[] token)
+	{
+		String retString = "<letStatement>\n";
+		
+		//add let and varName
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		//check for expression in brackets
+		if(token[index].getName().equals("["))
+		{
+			//add [ expression ]
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(expression(token));
+			retString = retString.concat(token[index].toString());
+			index++;
+		}
+		
+		//add =, expression, and ;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(expression(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		retString = retString.concat("</letStatement>\n");
+		System.out.println(retString);
+		return retString;
+	}
+	
+	public static String ifMethod(Token[] token)
+	{
+		String retString = "<ifStatement>\n";
+		
+		//add if, (, expression, ), and {
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(expression(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		//add statements and }
+		retString = retString.concat(statements(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		if(token[index].getName().equals("else"))
+		{
+			//add else, {, statements, }
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(statements(token));
+			retString = retString.concat(token[index].toString());
+			index++;
+		}
+		
+		retString = retString.concat("</ifStatement>\n");
+		return retString;
+	}
+	
+	public static String whileMethod(Token[] token)
+	{
+		String retString = "<whileStatement>\n";
+		
+		//add while, (, expression, and )
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(expression(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		//add {, statements, and }
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(statements(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		retString = retString.concat("</whileStatement>\n");
+		return retString;
+	}
+	
+	public static String doMethod(Token[] token)
+	{
+		String retString = "<doStatement>\n";
+		System.out.println("CODE GETS HERE :: DO METHOD");
+		
+		//add do and subroutineCall and ;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat(subroutineCall(token));
+		retString = retString.concat(token[index].toString());
+		index++;
+		
+		retString = retString.concat("</doStatement>\n");
+		System.out.println(retString);
+		return retString;
+	}
+	
+	public static String returnMethod(Token[] token)
+	{
+		String retString = "<returnStatement>\n";
+		
+		retString = retString.concat(token[index].toString());
+		index++;
+		if(!token[index].getName().equals(";"))
+			retString = retString.concat(expression(token));
+		
+		//add ;
+		retString = retString.concat(token[index].toString());
+		index++;
+		retString = retString.concat("</returnStatement>\n");
+		System.out.println(retString);
+		return retString;
+	}
+	
+	public static String expression(Token[] token)
+	{
+		String retString = "<expression>\n";
+		
+		if(token[index].getType().equals("integerConstant"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getType().equals("stringConstant"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("true"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("false"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("null"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("this"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("-"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			expression(token);
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("~"))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			expression(token);
+			retString = retString.concat("</term>\n");
+		}
+		else if(varsArr.contains(token[index].getName()))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			
+			if(token[index].getName().equals("["))
+			{
+				retString = retString.concat(token[index].toString());
+				index++;
+				retString = retString.concat(expression(token));
+				retString = retString.concat(token[index].toString());
+				index++;
+			}
+			retString = retString.concat("</term>\n");
+		}
+		else if(subArr.contains(token[index].toString()) || classNameArr.contains(token[index].getName()))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(subroutineCall(token));
+			retString = retString.concat("</term>\n");
+		}
+		else if(token[index].getName().equals("("))
+		{
+			retString = retString.concat("<term>\n");
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(expression(token));
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat("</term>\n");
+		}
+		
+		if(token[index].getName().equals("+") || token[index].getName().equals("-") ||
+				token[index].getName().equals("*") || token[index].getName().equals("/") ||
+				token[index].getName().equals("&") || token[index].getName().equals("|") ||
+				token[index].getName().equals("<") || token[index].getName().equals(">") ||
+				token[index].getName().equals("="))
+		{
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(expression(token));
+		}
+		
+		retString = retString.concat("</expression>\n");
+		return retString;
+	}
+	
+	public static String subroutineCall(Token[] token)
+	{
+		String retString = "<subroutineCall>\n";
+		
+		/*retString = retString.concat(token[index].toString());
+		index++;*/
+		if(!classNameArr.contains(token[index].getName()) && !varsArr.contains(token[index].getName()))
+		{
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(expression(token));
+			if(token[index].getName().equals(","))
+			{
+				while(!token[index].getName().equals(")"))
+				{
+					retString = retString.concat(token[index].toString());
+					index++;
+					retString = retString.concat(expression(token));
+				}
+			}
+			retString = retString.concat(token[index].toString());
+			index++;
+		}
+		else
+		{
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(token[index].toString());
+			index++;
+			retString = retString.concat(expression(token));
+			if(token[index].getName().equals(","))
+			{
+				while(!token[index].getName().equals(")"))
+				{
+					retString = retString.concat(token[index].toString());
+					index++;
+					retString = retString.concat(expression(token));
+				}
+			}
+			retString = retString.concat(token[index].toString());
+			index++;
+		}
+		
+		retString = retString.concat("</subroutineCall>\n");
+		return retString;
 	}
 }
