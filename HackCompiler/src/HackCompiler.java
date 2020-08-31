@@ -11,16 +11,15 @@ public class HackCompiler
 {
 	static String className;
 	static int index = 0;
-	static ArrayList<String> subArr = new ArrayList<String>(), varsArr = new ArrayList<String>(),
-			classNameArr = new ArrayList<String>(), paramList = new ArrayList<String>();
+	static ArrayList<String> subArr = new ArrayList<String>(), classVarsArr = new ArrayList<String>(),
+			classNameArr = new ArrayList<String>(), paramList = new ArrayList<String>(),
+			methVarsArr = new ArrayList<String>();
 	
 	public static void main(String[] args) throws IOException
 	{
 		String codeFinal = "";
 		String strfile;
 		File file = new File(args[0]);
-		
-		String tokenTest = "START TOKEN TEST";
 		
 		BufferedReader in;
 		BufferedWriter out;
@@ -51,17 +50,13 @@ public class HackCompiler
 					in = new BufferedReader(new FileReader(new File(d)));
 					strfile = file.toString();
 					className = d.substring(d.lastIndexOf("\\") + 1, d.length() - 5);
+					System.out.println("************FILE :: " + className + " :: START PARSING***********\n");
 					
-					//this is to test tokening
-					/*Token[] tokArray = tokenizer(in);
-					for(Token t : tokArray)
-						codeFinal = codeFinal.concat(t.toString());*/
 					codeFinal = "";
 					index = 0;
 					subArr.clear();
-					varsArr.clear();
+					classVarsArr.clear();
 					codeFinal = codeFinal.concat(parser(tokenizer(in)));
-					System.out.println("FILE :: " + className + "\n" + codeFinal);
 					
 					fileOut = new File(strfile.concat("\\My" + className + ".xml"));
 					//check if file already exists
@@ -74,6 +69,7 @@ public class HackCompiler
 						fileOut.createNewFile();
 					out = new BufferedWriter(new FileWriter(fileOut));
 					
+					System.out.println(codeFinal + "************FINAL OUTPUT***********\n\n\n\n");
 					out.write(codeFinal);
 					out.flush();
 				}
@@ -402,6 +398,7 @@ public class HackCompiler
 			tokArrFin[i] = tokArr.get(i);
 		}
 		
+		
 		return tokArrFin;
 	}
 	
@@ -417,16 +414,18 @@ public class HackCompiler
 			if((tempTok.equals("constructor") || tempTok.equals("function") || tempTok.equals("method") ||
 					tempTok.equals("void") || tempTok.equals("int") || tempTok.equals("char") ||
 					tempTok.equals("boolean") || tempTok.equals(className)) && token[i + 2].getName().equals("("))
-				subArr.add(token[i + 1].getName());
-			else if(token[i].getName().equals("var"))
 			{
-				varsArr.add(token[i + 2].getName());
+				subArr.add(token[i + 1].getName());
+			}
+			else if(token[i].getName().equals("static") || token[i].getName().equals("field"))
+			{
+				classVarsArr.add(token[i + 2].getName());
 				if(!token[i + 3].getName().equals(";"))
 				{
 					count = 4;
 					while(!token[i + count - 1].getName().equals(";"))
 					{
-						varsArr.add(token[i + count].getName());
+						classVarsArr.add(token[i + count].getName());
 						count = count + 2;
 					}
 				}
@@ -434,7 +433,6 @@ public class HackCompiler
 		}
 		
 		codeFinal = codeFinal.concat(classMethod(token));
-		//CURRENTLY NOT LEAVING CLASS METHOD
 		return codeFinal;
 	}
 	
@@ -636,6 +634,7 @@ public class HackCompiler
 		//add }
 		retString = retString.concat(token[index].toString());
 		index++;
+		methVarsArr.clear();
 		retString = retString.concat("</subroutineBody>\n");
 		return retString;
 	}
@@ -649,6 +648,7 @@ public class HackCompiler
 		index++;
 		retString = retString.concat(token[index].toString());
 		index++;
+		methVarsArr.add(token[index].getName());
 		retString = retString.concat(token[index].toString());
 		index++;
 		
@@ -659,6 +659,7 @@ public class HackCompiler
 				//add comma and next varName
 				retString = retString.concat(token[index].toString());
 				index++;
+				methVarsArr.add(token[index].getName());
 				retString = retString.concat(token[index].toString());
 				index++;
 			}
@@ -732,8 +733,8 @@ public class HackCompiler
 		index++;
 		
 		retString = retString.concat("</letStatement>\n");
-		if(className.equals("Square"))
-			System.out.println(retString);
+		//if(className.equals("Square"))
+			//System.out.println(retString);
 		return retString;
 	}
 	
@@ -809,8 +810,8 @@ public class HackCompiler
 		index++;
 		
 		retString = retString.concat("</doStatement>\n");
-		if(className.equals("Square"))
-			System.out.println(retString);
+		//if(className.equals("Square"))
+			//System.out.println(retString);
 		return retString;
 	}
 	
@@ -857,8 +858,10 @@ public class HackCompiler
 		
 		/*retString = retString.concat(token[index].toString());
 		index++;*/
-		if(!classNameArr.contains(token[index].getName()) && !varsArr.contains(token[index].getName()))
+		if(!classNameArr.contains(token[index].getName()) && !classVarsArr.contains(token[index].getName())
+				&& !methVarsArr.contains(token[index].getName()))
 		{
+			//if subroutine is static
 			retString = retString.concat(token[index].toString());
 			index++;
 			retString = retString.concat(token[index].toString());
@@ -878,6 +881,7 @@ public class HackCompiler
 		}
 		else
 		{
+			//add className or varName, symbol(.), subroutineName, and (
 			retString = retString.concat(token[index].toString());
 			index++;
 			retString = retString.concat(token[index].toString());
@@ -908,21 +912,36 @@ public class HackCompiler
 	{
 		String retString = "<expressionList>\n";
 		
-		if(index + 1 < token.length && token[index + 1].getName().equals(","))
+		/*if(index + 1 < token.length && token[index + 1].getName().equals(","))
 		{
 			while(!token[index].getName().equals(")"))
 			{
 				retString = retString.concat(expression(token));
-				retString = retString.concat(token[index].getName());
-				index++;
+				if(token[index].getName().equals(","))
+				{
+					retString = retString.concat(token[index].toString());
+					index++;
+				}
 			}
 		}
 		else if(!token[index].getName().equals(")"))
 		{
 			retString = retString.concat(expression(token));
+		}*/
+		
+		while(!token[index].getName().equals(")"))
+		{
+			retString = retString.concat(expression(token));
+			if(token[index].getName().equals(","))
+			{
+				retString = retString.concat(token[index].toString());
+				index++;
+			}
 		}
 		
 		retString = retString.concat("</expressionList>\n");
+		//if(className.equals("Square"))
+			//System.out.println(retString + "\n*************************");
 		return retString;
 	}
 	
@@ -974,6 +993,7 @@ public class HackCompiler
 		}
 		else if(token[index].getName().equals("-"))
 		{
+			//add unary operator and term
 			retString = retString.concat("<term>\n");
 			retString = retString.concat(token[index].toString());
 			index++;
@@ -982,14 +1002,16 @@ public class HackCompiler
 		}
 		else if(token[index].getName().equals("~"))
 		{
+			//add unary operator and term
 			retString = retString.concat("<term>\n");
 			retString = retString.concat(token[index].toString());
 			index++;
 			retString = retString.concat(term(token));
 			retString = retString.concat("</term>\n");
 		}
-		else if(varsArr.contains(token[index].getName()))
+		else if(classVarsArr.contains(token[index].getName()) || methVarsArr.contains(token[index].getName()))
 		{
+			//add class variable name or method variable name, and expression in bracket
 			retString = retString.concat("<term>\n");
 			retString = retString.concat(token[index].toString());
 			index++;
@@ -1019,6 +1041,7 @@ public class HackCompiler
 		}
 		else if(token[index].getName().equals("("))
 		{
+			//add (, expression, )
 			retString = retString.concat("<term>\n");
 			retString = retString.concat(token[index].toString());
 			index++;
